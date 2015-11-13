@@ -8,22 +8,24 @@ class TLC5941 {
   #define DC_CHANNEL_LEN 6 /* Each DC channel is 6 bits */
   #define GS_SIZE 192 /* Total size in bits of Grayscale PWM control */
   #define DC_SIZE 96 /* Total size in bits of Dot Correction */
-
-  /* Pin definitions: */
-  #define SIN     0 /* Serial input */
-  #define SCLK    1 /* Serial clock */
-  #define XLAT    2 /* Serial data latch into the registers */
-  #define BLANK   3 /* Turns off LEDS and signals the start of the Grayscale cycle */
-  #define GSCLK   4 /* Grayscale clock */
-  #define MODE    5 /* 0 = In Dot Correction Mode | 1 = In Grayscale Mode */
-  #define XERR    6 /* XERR signals LED overheating */
-  
+ 
   /* Convenience macros: */
   #define outputState(port, pin) ((port) & (1 << (pin))) /* Reads state of pin */
   #define PULSE(pin) { digitalWrite(pin, HIGH); digitalWrite(pin, LOW); } /* Send a pulse to a pin */
   #define SET_BLANK(blank) digitalWrite(BLANK, blank);
   #define SET_MODE(md) digitalWrite(MODE, md);
 
+  /* Pin definitions: */
+  enum TLCPINS {
+    SIN,      /* Serial input */
+    SCLK,     /* Serial clock */
+    XLAT,     /* Serial data latch into the registers */
+    BLANK,    /* Turns off LEDS and signals the start of the Grayscale cycle */
+    MODE,     /* 0 = In Dot Correction Mode | 1 = In Grayscale Mode */
+    XERR      /* XERR signals LED overheating */
+  };
+
+  /* Modes: */
   enum MD {
     MD_GS, /* Grayscale mode */
     MD_DC  /* Dot Correction Mode */
@@ -32,7 +34,7 @@ class TLC5941 {
   TLC5941() {}
 
   void init(void) {
-    for(int i = 0; i <= 5; i++) { 
+    for(int i = 0; i <= 4; i++) { 
       pinMode(i, OUTPUT);
       digitalWrite(i, LOW);
     }
@@ -40,7 +42,7 @@ class TLC5941 {
     pinMode(XERR, INPUT);
 
     SET_MODE(MD_DC);
-    SET_BLANK(1);
+    SET_BLANK(HIGH);
 
     /* Send default dot correction data: */
     sendDot();
@@ -141,13 +143,12 @@ class TLC5941 {
     }
     
     SET_BLANK(LOW);
-    for(uint16_t gsclk_ctr = 0; gsclk_ctr <= 4095; gsclk_ctr++) {
+    for(uint16_t gsclk_ctr = 0; gsclk_ctr <= 4095; gsclk_ctr++)
       if(!(data_ctr > TLC5941_COUNT * GS_SIZE - 1)) {
         digitalWrite(SIN, gsData[data_ctr++] ? HIGH : LOW);
         PULSE(SCLK);  
       }      
-      PULSE(GSCLK);
-    }
+
     /* End of GS cycle */
     SET_BLANK(HIGH);
     PULSE(XLAT);
@@ -167,8 +168,8 @@ TLC5941 tlc;
 
 void setup() {
   tlc.init();
-  tlc.setChannel(0, 0x20);
-  tlc.setChannel(2, 0x80);
+  tlc.setChannel(0, 0xFF);
+  tlc.setChannel(2, 0xFF);
 }
   
 void loop() {
