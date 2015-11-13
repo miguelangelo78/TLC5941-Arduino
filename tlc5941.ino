@@ -1,7 +1,4 @@
 
-class TLC5941;
-TLC5941 * tlc_isr; /* Used by the Timer ISR */
-
 class TLC5941 {
   public:
   
